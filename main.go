@@ -90,6 +90,7 @@ func createPost(w http.ResponseWriter, r *http.Request) {
       return
     }
   }
+  post.Votes = 0
   redisCli.Hmset(key(res, id), post)
   redisCli.Sadd(key(res), []byte(id))
   routes.ServeJson(w, post)
