@@ -15,6 +15,7 @@ import (
   "github.com/hoisie/redis"
 )
 
+var redisAddr string
 var redisKey string
 var port string
 
@@ -111,6 +112,7 @@ func delPost(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+  redisCli.Addr = redisAddr
   mux := routes.New()
   mux.Get("/:res", getPosts)
   mux.Post("/:res", createPost)
@@ -121,6 +123,7 @@ func main() {
 }
 
 func init() {
+  flag.StringVar(&redisAddr, "redisAddr", "127.0.0.1:6379", "redis address")
   flag.StringVar(&redisKey, "redisKey", "rediscuss", "redis key")
   flag.StringVar(&port, "port", ":9000", "listen to port")
   flag.Parse()
