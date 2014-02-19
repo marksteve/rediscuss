@@ -1,10 +1,14 @@
 /** @jsx React.DOM */
 var Rediscuss = React.createClass({
   render: function() {
-    return <div />;
+    return <div></div>;
   }
 });
-React.renderComponent(
-  <Rediscuss res={location.hash.substring(1)} />,
-  document.getElementById('rediscuss')
-);
+
+
+function rediscuss(options) {
+  React.renderComponent(
+    <Rediscuss options={options} />,
+    document.getElementById('rediscuss')
+  );
+}
