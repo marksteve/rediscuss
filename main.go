@@ -7,6 +7,7 @@ import (
   "io/ioutil"
   "log"
   "net/http"
+  "os"
   "strings"
   "time"
 
@@ -228,6 +229,8 @@ func main() {
   mux.Del("/:res/:id", delPost)
   mux.FilterParam("id", withPost)
   mux.FilterParam("id", withUser)
+  wd, _ := os.Getwd()
+  mux.Static("/s/", wd)
   log.Fatal(http.ListenAndServe(port, mux))
 }
 
