@@ -11,10 +11,10 @@ import (
   "strings"
   "time"
 
-  "github.com/drone/routes"
   "github.com/dustin/randbo"
   "github.com/gorilla/context"
   "github.com/hoisie/redis"
+  "github.com/marksteve/routes"
   "github.com/memcachier/bcrypt"
 )
 
@@ -58,8 +58,7 @@ type User struct {
 }
 
 func jsonError(w http.ResponseWriter, message string, code int) {
-  http.Error(w, "", code)
-  routes.ServeJson(w, &Error{message})
+  routes.ServeJson(w, &Error{message}, code)
 }
 
 func getJson(v interface{}, w http.ResponseWriter, r *http.Request) {
@@ -95,7 +94,7 @@ func getPosts(w http.ResponseWriter, r *http.Request) {
     redisCli.Hgetall(key(res, string(id)), &post)
     posts = append(posts, post)
   }
-  routes.ServeJson(w, &Posts{posts})
+  routes.ServeJson(w, &Posts{posts}, http.StatusOK)
 }
 
 func createPost(w http.ResponseWriter, r *http.Request) {
@@ -122,7 +121,7 @@ func createPost(w http.ResponseWriter, r *http.Request) {
   post.Votes = 0
   redisCli.Hmset(key(res, id), post)
   redisCli.Sadd(key(res), []byte(id))
-  routes.ServeJson(w, post)
+  routes.ServeJson(w, post, http.StatusOK)
 }
 
 func withPost(w http.ResponseWriter, r *http.Request) {
@@ -161,10 +160,13 @@ func withUser(w http.ResponseWriter, r *http.Request) {
   context.Set(r, "user", u)
 }
 
-func setToken(name string) string {
+func setToken(name string) (string, error) {
   token := genRandString(27)
-  redisCli.Setex(key("tokens", token), 60*60*24*7, []byte(name))
-  return token
+  err := redisCli.Setex(key("tokens", token), 60*60*24*7, []byte(name))
+  if err != nil {
+    return "", err
+  }
+  return token, nil
 }
 
 func updatePost(w http.ResponseWriter, r *http.Request) {
@@ -184,21 +186,29 @@ func register(w http.ResponseWriter, r *http.Request) {
   }
   salt, err := bcrypt.GenSalt(10)
   if err != nil {
-    jsonError(w, "Oops.", http.StatusBadRequest)
+    jsonError(w, "Oops.", http.StatusInternalServerError)
     return
   }
   hash, err := bcrypt.Crypt(c.Password, salt)
   if err != nil {
-    jsonError(w, "Oops.", http.StatusBadRequest)
+    jsonError(w, "Oops.", http.StatusInternalServerError)
     return
   }
   u := User{
     Name: c.Name,
     Hash: hash,
   }
-  u.Token = setToken(c.Name)
-  redisCli.Hmset(key("users", c.Name), u)
-  routes.ServeJson(w, u)
+  u.Token, err = setToken(c.Name)
+  if err != nil {
+    jsonError(w, "Oops.", http.StatusInternalServerError)
+    return
+  }
+  err = redisCli.Hmset(key("users", c.Name), u)
+  if err != nil {
+    jsonError(w, "Oops.", http.StatusInternalServerError)
+    return
+  }
+  routes.ServeJson(w, u, http.StatusOK)
 }
 
 func login(w http.ResponseWriter, r *http.Request) {
@@ -214,8 +224,12 @@ func login(w http.ResponseWriter, r *http.Request) {
     jsonError(w, "Invalid login.", http.StatusUnauthorized)
     return
   }
-  u.Token = setToken(c.Name)
-  routes.ServeJson(w, u)
+  u.Token, err = setToken(c.Name)
+  if err != nil {
+    jsonError(w, "Oops.", http.StatusInternalServerError)
+    return
+  }
+  routes.ServeJson(w, u, http.StatusOK)
 }
 
 func main() {

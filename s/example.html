@@ -3,12 +3,21 @@
   <head>
     <title>rediscuss</title>
     <link rel="stylesheet" href="rediscuss.css">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/normalize/3.0.0/normalize.min.css">
   </head>
   <body>
     <div id="rediscuss"></div>
-    <script src="//cdnjs.cloudflare.com/ajax/libs/react/0.8.0/react.min.js"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/react/0.8.0/JSXTransformer.js"></script>
+    <script type="text/jsx" src="superagent.js"></script>
+    <script type="text/jsx" src="react.js"></script>
     <script type="text/jsx" src="rediscuss.js"></script>
-    <script>setTimeout(function(){rediscuss({res:'resource',token:'token'});},500);</script>
+    <script>
+      window.onload = function() {
+        rediscuss({
+          root: 'http://localhost:9000',
+          res: 'resource'
+        });
+      };
+    </script>
   </body>
 </html>
